@@ -22,13 +22,13 @@ for Fondation applications
       'Fondation' => {
           dependencies => [
               { 'Fondation::Model::DBIx::Async' => {
-                  backends => {
+                  backends => [
                       main => {
                           dsn          => 'dbi:SQLite:dbname=data/app.db',
                           schema_class => 'MySchema',
                           workers      => 2,
                       },
-                  },
+                  ],
                   models => {
                       user => { source => 'users' },
                   },
@@ -104,7 +104,7 @@ can help there.
 =head1 CONFIGURATION
 
     'Fondation::Model::DBIx::Async' => {
-        backends => {
+        backends => [
             main => {
                 dsn          => 'dbi:SQLite:dbname=data/app.db',
                 schema_class => 'MySchema',
@@ -118,7 +118,7 @@ can help there.
                 schema_class => 'MyLogSchema',
                 workers      => 1,
             },
-        },
+        ],
         default_backend => 'main',            # optional
         models => {
             user    => { source => 'users' },
@@ -129,8 +129,9 @@ can help there.
 
 =head3 backends
 
-Hash of named database backends. Each backend requires C<dsn> and
-C<schema_class>. Keys are backend names used by models and other plugins
+Array of name/config pairs (ordered). Each pair provides a backend name
+followed by its configuration hash. Each backend requires C<dsn> and
+C<schema_class>. Names are used by models and other plugins
 to reference a specific connection.
 
 Plain DSN strings are accepted as a shorthand and normalized to
@@ -139,7 +140,7 @@ C<< { dsn => $dsn } >>.
 =head3 default_backend
 
 Name of the default backend. When omitted, the first backend in the
-C<backends> hash is used. Models without an explicit C<backend> fall
+C<backends> array is used. Models without an explicit C<backend> fall
 back to this.
 
 =head3 models
@@ -266,7 +267,7 @@ sub fondation_meta {
         dependencies     => [],
         provides_actions => ['DBIx'],
         defaults         => {
-            backends        => {},
+            backends        => [],
             models          => {},
             default_backend => undef,
         },
@@ -276,13 +277,25 @@ sub fondation_meta {
 sub register ($self, $app, $config) {
 
     # Normalize backends — plain DSN string → { dsn => $dsn }
-    my $backends = $config->{backends} // {};
-    for my $name (keys %$backends) {
-        if (!ref $backends->{$name}) {
-            $backends->{$name} = { dsn => $backends->{$name} };
-        }
+    my $backends_input = $config->{backends} // [];
+    die "backends must be an arrayref, got " . ref($backends_input) . "\n"
+        unless ref $backends_input eq 'ARRAY';
+
+    my $backends = {};
+    my @list;
+    for (my $i = 0; $i < @$backends_input; $i += 2) {
+        my $name = $backends_input->[$i];
+        die "Backend name must be a string at index $i\n"
+            if ref $name;
+        my $cfg = $backends_input->[$i+1] // {};
+        $cfg = { dsn => $cfg } unless ref $cfg;
+        die "Duplicate backend '$name'\n" if exists $backends->{$name};
+        $backends->{$name} = $cfg;
+        push @list, $name, $cfg;
     }
-    $self->{_backends_config} = $backends;
+
+    $self->{_backends_list} = \@list;
+    $self->{_backends}      = $backends;
     $self->{_models}          = $config->{models} // {};
     $self->{_default_backend} = $config->{default_backend};
 
@@ -290,12 +303,13 @@ sub register ($self, $app, $config) {
     $app->helper(schema_class => sub ($c, $backend_name = undef) {
         my $bdef;
         if ($backend_name) {
-            $bdef = $self->{_backends_config}{$backend_name}
+            $bdef = $self->{_backends}{$backend_name}
                 or die "Backend '$backend_name' not configured\n";
         }
         else {
-            for my $name (keys %{$self->{_backends_config}}) {
-                my $b = $self->{_backends_config}{$name};
+            for (my $i = 0; $i < @{$self->{_backends_list}}; $i += 2) {
+                my $name = $self->{_backends_list}[$i];
+                my $b = $self->{_backends}{$name};
                 if ($b->{schema_class}) {
                     $bdef = $b;
                     last;
@@ -308,12 +322,10 @@ sub register ($self, $app, $config) {
     # Helper: backend_config($name?)
     $app->helper(backend_config => sub ($c, $name = undef) {
         unless ($name) {
-            for my $n (keys %{$self->{_backends_config}}) {
-                $name = $n;
-                last;
-            }
+            $name = $self->{_backends_list}[0]
+                if @{$self->{_backends_list}};
         }
-        my $bdef = $self->{_backends_config}{$name}
+        my $bdef = $self->{_backends}{$name}
             or die "Backend '$name' not configured\n";
         return { %$bdef, name => $name };
     });
@@ -323,9 +335,7 @@ sub register ($self, $app, $config) {
     $app->helper(default_backend_name => sub ($c, $explicit = undef) {
         return $explicit if $explicit;
         return $self->{_default_backend} if $self->{_default_backend};
-        for my $name (keys %{$self->{_backends_config}}) {
-            return $name;
-        }
+        return $self->{_backends_list}[0] if @{$self->{_backends_list}};
         return undef;
     });
 
@@ -351,15 +361,13 @@ sub register ($self, $app, $config) {
 
         my $bname = $backend_name;
         unless ($bname) {
-            for my $name (keys %{$self->{_backends_config}}) {
-                $bname = $name;
-                last;
-            }
+            $bname = $self->{_backends_list}[0]
+                if @{$self->{_backends_list}};
         }
         return undef unless $bname;
         return $self->{_schemas}{$bname} if exists $self->{_schemas}{$bname};
 
-        my $bdef = $self->{_backends_config}{$bname}
+        my $bdef = $self->{_backends}{$bname}
             or die "Backend '$bname' not configured\n";
         die "schema_class is required for backend '$bname'\n"
             unless $bdef->{schema_class};
@@ -380,6 +388,41 @@ sub register ($self, $app, $config) {
             }
         );
         return $self->{_schemas}{$bname};
+    });
+
+    # Helper: schema_sig($schema?)
+    # Returns canonical signature of schema structure for drift detection.
+    # Deduplicates by real table name, skips __VERSION, only DDL attributes.
+    $app->helper(schema_sig => sub ($c, $schema = undef) {
+        $schema //= $c->schema;
+        return undef unless $schema;
+
+        my %sig;
+        my %seen;
+        for my $source_name ($schema->sources) {
+            my $source = $schema->source($source_name);
+            my $table  = $source->name;
+            next if $table eq 'dbix_class_deploymenthandler_versions';
+            next if $seen{$table}++;
+
+            my @columns;
+            for my $col ($source->columns) {
+                my $info = $source->column_info($col);
+                my %ddl;
+                for my $attr (qw(data_type is_nullable is_auto_increment
+                                 default_value size is_foreign_key)) {
+                    $ddl{$attr} = $info->{$attr};
+                }
+                push @columns, { name => $col, %ddl };
+            }
+
+            $sig{$table} = {
+                columns      => \@columns,
+                primary_keys => [ $source->primary_columns ],
+            };
+        }
+
+        return \%sig;
     });
 
     # Helper: model($name)
@@ -447,7 +490,7 @@ sub fondation_finalyze ($self, $app, $long_name) {
             or die "Fondation::Model::DBIx::Async: no backend for model '$model_name'"
             . " and no default_backend configured\n";
         die "Fondation::Model::DBIx::Async: backend '$bname' not found for model '$model_name'\n"
-            unless $self->{_backends_config}{$bname};
+            unless $self->{_backends}{$bname};
     }
 
     return 1;
@@ -455,9 +498,7 @@ sub fondation_finalyze ($self, $app, $long_name) {
 
 sub _resolve_default_backend ($self) {
     return $self->{_default_backend} if $self->{_default_backend};
-    for my $name (keys %{$self->{_backends_config}}) {
-        return $name;
-    }
+    return $self->{_backends_list}[0] if @{$self->{_backends_list}};
     return undef;
 }
 

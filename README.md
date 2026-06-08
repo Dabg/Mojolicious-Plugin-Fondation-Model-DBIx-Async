@@ -13,13 +13,13 @@ version 0.01
         'Fondation' => {
             dependencies => [
                 { 'Fondation::Model::DBIx::Async' => {
-                    backends => {
+                    backends => [
                         main => {
                             dsn          => 'dbi:SQLite:dbname=data/app.db',
                             schema_class => 'MySchema',
                             workers      => 2,
                         },
-                    },
+                    ],
                     models => {
                         user => { source => 'users' },
                     },
@@ -100,7 +100,7 @@ for Fondation applications
 # CONFIGURATION
 
     'Fondation::Model::DBIx::Async' => {
-        backends => {
+        backends => [
             main => {
                 dsn          => 'dbi:SQLite:dbname=data/app.db',
                 schema_class => 'MySchema',
@@ -114,7 +114,7 @@ for Fondation applications
                 schema_class => 'MyLogSchema',
                 workers      => 1,
             },
-        },
+        ],
         default_backend => 'main',            # optional
         models => {
             user    => { source => 'users' },
@@ -125,8 +125,9 @@ for Fondation applications
 
 ### backends
 
-Hash of named database backends. Each backend requires `dsn` and
-`schema_class`. Keys are backend names used by models and other plugins
+Array of name/config pairs (ordered). Each pair provides a backend name
+followed by its configuration hash. Each backend requires `dsn` and
+`schema_class`. Names are used by models and other plugins
 to reference a specific connection.
 
 Plain DSN strings are accepted as a shorthand and normalized to
@@ -135,7 +136,7 @@ Plain DSN strings are accepted as a shorthand and normalized to
 ### default\_backend
 
 Name of the default backend. When omitted, the first backend in the
-`backends` hash is used. Models without an explicit `backend` fall
+`backends` array is used. Models without an explicit `backend` fall
 back to this.
 
 ### models

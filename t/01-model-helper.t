@@ -17,13 +17,13 @@ $app->config->{'Fondation'} = {
     dependencies => [
         {
             'Fondation::Model::DBIx::Async' => {
-                backends => {
+                backends => [
                     main => {
                         dsn          => "dbi:SQLite:dbname=$tmpdir/test.db",
                         schema_class => 'TestDBIxAsyncSchema',
                         workers      => 1,
                     },
-                },
+                ],
                 models => {
                     user => { source => 'users', backend => 'main' },
                 },
@@ -96,7 +96,7 @@ is($c->default_backend_name('custom'), 'custom',
             {
                 'Fondation::Model::DBIx::Async' => {
                     default_backend => 'logs',
-                    backends => {
+                    backends => [
                         main => {
                             dsn => "dbi:SQLite:dbname=$tmpdir/main.db",
                             schema_class => 'TestDBIxAsyncSchema',
@@ -105,7 +105,7 @@ is($c->default_backend_name('custom'), 'custom',
                             dsn => "dbi:SQLite:dbname=$tmpdir/logs.db",
                             schema_class => 'TestDBIxAsyncSchema',
                         },
-                    },
+                    ],
                 },
             },
         ],
@@ -127,12 +127,12 @@ is($c->default_backend_name('custom'), 'custom',
         dependencies => [
             {
                 'Fondation::Model::DBIx::Async' => {
-                    backends => {
+                    backends => [
                         main => {
                             dsn => "dbi:SQLite:dbname=$tmpdir/modeldef.db",
                             schema_class => 'TestDBIxAsyncSchema',
                         },
-                    },
+                    ],
                     models => {
                         user     => { source => 'users', backend => 'main' },
                         article  => { source => 'articles' },            # no backend
