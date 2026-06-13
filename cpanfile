@@ -1,4 +1,4 @@
-requires 'Mojolicious', '>= 9.0';
+requires 'Mojolicious' => '9.46';
 requires 'Mojolicious::Plugin::Fondation' => '0.01';
 requires 'DBIx::Class';
 requires 'SQL::Translator' => '0.11018';
