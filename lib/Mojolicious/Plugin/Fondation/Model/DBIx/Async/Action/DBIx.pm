@@ -40,7 +40,7 @@ sub after_load ($self, $long_name, $conf, $share_dir) {
 
     # Register Result classes on the native schema class
     # (before workers fork — so they inherit the sources)
-    my @registered_results;
+    my %registered_results;
     for my $module (@result_modules) {
 
         eval "require $module; 1" or do {
@@ -58,16 +58,7 @@ sub after_load ($self, $long_name, $conf, $share_dir) {
         eval { $schema_class->register_source($source_name, $source); 1 }
             or $self->log->warn("[$short] register_source failed for $source_name: $@");
 
-        # Also register by class moniker so DBIx::Class::Fixtures / populate
-        # can resolve sources by class name (e.g. 'User' → source).
-        my ($moniker) = $module =~ /::Result::([^:]+)$/;
-        if ($moniker && $moniker ne $source_name) {
-            eval { $schema_class->register_class($moniker, $module); 1 }
-                or $self->log->warn("[$short] register_class failed for $moniker: $@");
-            $self->log->debug("[$short] Registered DBIC Class: $moniker → $module");
-        }
-
-        push @registered_results, $source_name;
+        $registered_results{$source_name} = $module;
         $self->log->debug("[$short] Registered DBIC Result: $source_name ($module)");
     }
 
@@ -82,10 +73,10 @@ sub after_load ($self, $long_name, $conf, $share_dir) {
 
     # Store metadata
     $plugin_entry->{dbic} = {
-        results     => [ sort @registered_results ],
-        resultsets  => [ sort @registered_resultsets ],
-        total_added => scalar(@registered_results) + scalar(@registered_resultsets),
-        schema_ns   => $schema_ns,
+        result_classes => \%registered_results,
+        resultsets     => [ sort @registered_resultsets ],
+        total_added    => scalar(keys %registered_results) + scalar(@registered_resultsets),
+        schema_ns      => $schema_ns,
     };
 }
 

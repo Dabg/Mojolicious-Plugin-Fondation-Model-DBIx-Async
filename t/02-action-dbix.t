@@ -46,7 +46,8 @@ is($source->result_class, 'Mojolicious::Plugin::TestDBIxPlugin::Schema::Result::
 # 2. Plugin registry has dbic metadata
 my $entry = $app->manager->registry->{'Mojolicious::Plugin::TestDBIxPlugin'};
 ok($entry->{dbic}, 'dbic metadata present');
-is_deeply($entry->{dbic}{results}, ['users'], 'results list correct');
+ok($entry->{dbic}{result_classes}, 'result_classes present');
+ok($entry->{dbic}{result_classes}{users}, 'result_classes has users table');
 is($entry->{dbic}{total_added}, 1, 'one result added');
 
 # 3. End-to-end: deploy + CRUD via model()
