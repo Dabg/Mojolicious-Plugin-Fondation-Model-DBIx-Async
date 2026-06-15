@@ -8,11 +8,6 @@ use Mojo::Base 'Mojolicious::Plugin', -signatures;
 
 our $VERSION = '0.01';
 
-=head1 NAME
-
-Mojolicious::Plugin::Fondation::Model::DBIx::Async - Native DBIx::Class::Async
-for Fondation applications
-
 =encoding UTF-8
 
 =head1 SYNOPSIS
