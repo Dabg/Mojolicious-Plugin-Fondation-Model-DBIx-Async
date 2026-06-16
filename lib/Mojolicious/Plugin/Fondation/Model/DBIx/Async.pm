@@ -6,8 +6,6 @@ package Mojolicious::Plugin::Fondation::Model::DBIx::Async;
 
 use Mojo::Base 'Mojolicious::Plugin', -signatures;
 
-our $VERSION = '0.01';
-
 =encoding UTF-8
 
 =head1 SYNOPSIS
