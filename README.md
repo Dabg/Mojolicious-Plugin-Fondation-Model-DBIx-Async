@@ -1,6 +1,6 @@
 # NAME
 
-Mojolicious::Plugin::Fondation::Model::DBIx::Async - Fondation plugin exposing DBIx::Class::Async natively
+Mojolicious::Plugin::Fondation::Model::DBIx::Async - Fondation plugin exposing DBIx::Class::Async natively —
 
 # VERSION
 
@@ -91,11 +91,6 @@ An `END` block disconnects all schemas on clean process exit (Ctrl-C, `kill`,
 stop worker processes. The `before_server_stop` hook is also emitted so
 other code can react to shutdown. Only `SIGKILL` bypasses this — no hook
 can help there.
-
-# NAME
-
-Mojolicious::Plugin::Fondation::Model::DBIx::Async - Native DBIx::Class::Async
-for Fondation applications
 
 # CONFIGURATION
 

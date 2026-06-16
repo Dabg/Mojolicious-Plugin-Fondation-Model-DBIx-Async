@@ -1,4 +1,4 @@
-package TestDBIxAsyncSchema::Result::User;
+package Mojolicious::Plugin::Fondation::TestDBIxAsync::Schema::Result::User;
 use base 'DBIx::Class::Core';
 
 __PACKAGE__->table('users');

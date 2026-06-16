@@ -4,35 +4,30 @@ use Test::More;
 use Mojo::Base -signatures;
 use FindBin;
 use lib "$FindBin::Bin/../lib", "$FindBin::Bin/lib";
-use Mojolicious;
 use File::Temp qw(tempdir);
+use Mojolicious::Plugin::Fondation::TestHelper qw(create_test_app);
 
 my $tmpdir = tempdir(CLEANUP => 1);
-my $app = Mojolicious->new;
-$app->moniker('MyApp');
-$app->log->level('fatal');
+my $dbfile = "$tmpdir/test.db";
 
-$app->config->{'Fondation'} = {
+my $app = create_test_app($tmpdir);
+$app->plugin('Fondation' => {
     dependencies => [
-        {
-            'Fondation::Model::DBIx::Async' => {
-                backends => [
-                    main => {
-                        dsn          => "dbi:SQLite:dbname=$tmpdir/test.db",
-                        schema_class => 'TestDBIxAsyncSchema',
-                        workers      => 1,
-                    },
-                ],
-                models => {
-                    user => { source => 'users', backend => 'main' },
+        { 'Fondation::Model::DBIx::Async' => {
+            backends => [
+                main => {
+                    dsn          => "dbi:SQLite:dbname=$dbfile",
+                    schema_class => 'TestDBIxAsyncSchema',
+                    workers      => 1,
                 },
+            ],
+            models => {
+                user => { source => 'users', backend => 'main' },
             },
-        },
-        'TestDBIxPlugin',
+        }},
+        'Fondation::TestDBIxAsync',
     ],
-};
-
-$app->plugin('Fondation');
+});
 
 my $c = $app->build_controller;
 
@@ -40,15 +35,15 @@ my $c = $app->build_controller;
 my $schema = $c->schema;
 my $source = eval { $schema->source('users') };
 ok($source, 'users source registered by Action::DBIx');
-is($source->result_class, 'Mojolicious::Plugin::TestDBIxPlugin::Schema::Result::User',
+is($source->result_class, 'Mojolicious::Plugin::Fondation::TestDBIxAsync::Schema::Result::User',
     'result_class from plugin');
 
 # 2. Plugin registry has dbic metadata
-my $entry = $app->manager->registry->{'Mojolicious::Plugin::TestDBIxPlugin'};
+my $entry = $app->fondation->registry->{'Mojolicious::Plugin::Fondation::TestDBIxAsync'};
 ok($entry->{dbic}, 'dbic metadata present');
 ok($entry->{dbic}{result_classes}, 'result_classes present');
 ok($entry->{dbic}{result_classes}{users}, 'result_classes has users table');
-is($entry->{dbic}{total_added}, 1, 'one result added');
+is($entry->{dbic}{total_added}, 2, 'two results added (User + Article)');
 
 # 3. End-to-end: deploy + CRUD via model()
 $schema->deploy({ add_drop_table => 0 })->get;

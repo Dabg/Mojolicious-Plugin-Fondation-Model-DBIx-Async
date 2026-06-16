@@ -4,41 +4,13 @@ use Test::More;
 use Mojo::Base -signatures;
 use FindBin;
 use lib "$FindBin::Bin/../lib", "$FindBin::Bin/lib";
-use Mojolicious;
 use File::Temp qw(tempdir);
+use Mojolicious::Plugin::Fondation::TestHelper qw(create_test_app);
+use DBIxTestHelper qw(build_dbtest_app);
 
-# Build app with in-memory SQLite
 my $tmpdir = tempdir(CLEANUP => 1);
-my $app = Mojolicious->new;
-$app->moniker('MyApp');
-$app->log->level('fatal');
 
-$app->config->{'Fondation'} = {
-    dependencies => [
-        {
-            'Fondation::Model::DBIx::Async' => {
-                backends => [
-                    main => {
-                        dsn          => "dbi:SQLite:dbname=$tmpdir/test.db",
-                        schema_class => 'TestDBIxAsyncSchema',
-                        workers      => 1,
-                    },
-                ],
-                models => {
-                    user => { source => 'users', backend => 'main' },
-                },
-            },
-        },
-    ],
-};
-
-$app->plugin('Fondation');
-
-# Register source explicitly (test schema has no plugin to trigger Action::DBIx)
-require TestDBIxAsyncSchema;
-require TestDBIxAsyncSchema::Result::User;
-TestDBIxAsyncSchema->register_source('users',
-    TestDBIxAsyncSchema::Result::User->result_source_instance);
+my ($app) = build_dbtest_app($tmpdir);
 
 my $c = $app->build_controller;
 
@@ -88,29 +60,26 @@ is($c->default_backend_name('custom'), 'custom',
 
 # 6c. With default_backend configured
 {
-    my $app2 = Mojolicious->new;
-    $app2->moniker('MyApp2');
-    $app2->log->level('fatal');
-    $app2->config->{'Fondation'} = {
+    my $tmpdir2 = tempdir(CLEANUP => 1);
+    my $app2 = create_test_app($tmpdir2);
+    $app2->plugin('Fondation' => {
         dependencies => [
-            {
-                'Fondation::Model::DBIx::Async' => {
-                    default_backend => 'logs',
-                    backends => [
-                        main => {
-                            dsn => "dbi:SQLite:dbname=$tmpdir/main.db",
-                            schema_class => 'TestDBIxAsyncSchema',
-                        },
-                        logs => {
-                            dsn => "dbi:SQLite:dbname=$tmpdir/logs.db",
-                            schema_class => 'TestDBIxAsyncSchema',
-                        },
-                    ],
-                },
-            },
+            { 'Fondation::Model::DBIx::Async' => {
+                default_backend => 'logs',
+                backends => [
+                    main => {
+                        dsn          => "dbi:SQLite:dbname=$tmpdir2/main.db",
+                        schema_class => 'TestDBIxAsyncSchema',
+                    },
+                    logs => {
+                        dsn          => "dbi:SQLite:dbname=$tmpdir2/logs.db",
+                        schema_class => 'TestDBIxAsyncSchema',
+                    },
+                ],
+            }},
+            'Fondation::TestDBIxAsync',
         ],
-    };
-    $app2->plugin('Fondation');
+    });
     my $c2 = $app2->build_controller;
     is($c2->default_backend_name, 'logs',
         'default_backend_name uses default_backend config');
@@ -120,34 +89,25 @@ is($c->default_backend_name('custom'), 'custom',
 
 # 7. Models without explicit backend fall back to default
 {
-    my $app3 = Mojolicious->new;
-    $app3->moniker('MyApp3');
-    $app3->log->level('fatal');
-    $app3->config->{'Fondation'} = {
+    my $tmpdir3 = tempdir(CLEANUP => 1);
+    my $app3 = create_test_app($tmpdir3);
+    $app3->plugin('Fondation' => {
         dependencies => [
-            {
-                'Fondation::Model::DBIx::Async' => {
-                    backends => [
-                        main => {
-                            dsn => "dbi:SQLite:dbname=$tmpdir/modeldef.db",
-                            schema_class => 'TestDBIxAsyncSchema',
-                        },
-                    ],
-                    models => {
-                        user     => { source => 'users', backend => 'main' },
-                        article  => { source => 'articles' },            # no backend
+            { 'Fondation::Model::DBIx::Async' => {
+                backends => [
+                    main => {
+                        dsn          => "dbi:SQLite:dbname=$tmpdir3/modeldef.db",
+                        schema_class => 'TestDBIxAsyncSchema',
                     },
+                ],
+                models => {
+                    user    => { source => 'users',   backend => 'main' },
+                    article => { source => 'articles' },              # no backend
                 },
-            },
+            }},
+            'Fondation::TestDBIxAsync',
         ],
-    };
-    $app3->plugin('Fondation');
-    require TestDBIxAsyncSchema;
-    require TestDBIxAsyncSchema::Result::User;
-    TestDBIxAsyncSchema->register_source('users',
-        TestDBIxAsyncSchema::Result::User->result_source_instance);
-    TestDBIxAsyncSchema->register_source('articles',
-        TestDBIxAsyncSchema::Result::User->result_source_instance);
+    });
 
     my $c3 = $app3->build_controller;
     # Model with explicit backend still works
