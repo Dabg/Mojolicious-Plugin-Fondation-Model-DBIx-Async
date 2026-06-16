@@ -452,8 +452,8 @@ sub register ($self, $app, $config) {
 }
 
 sub fondation_finalyze ($self, $app, $long_name) {
-    my $manager = $app->manager;
-    my $registry = $manager->registry // {};
+    my $api      = $app->fondation;
+    my $registry = $api->registry // {};
     return 1 unless %$registry;
 
     my $models = $self->{_models};
