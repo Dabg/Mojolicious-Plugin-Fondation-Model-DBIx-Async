@@ -1,8 +1,6 @@
 package Mojolicious::Plugin::Fondation::Model::DBIx::Async;
 
-# ABSTRACT: Fondation plugin exposing DBIx::Class::Async natively —
-# ResultSets, Futures, worker pool. No hashref wrapper or Future→Mojo::Promise
-# conversion. 100% async.
+# ABSTRACT: Fondation plugin exposing DBIx::Class::Async natively
 
 use Mojo::Base 'Mojolicious::Plugin', -signatures;
 

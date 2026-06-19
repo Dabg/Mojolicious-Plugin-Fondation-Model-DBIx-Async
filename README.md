@@ -1,6 +1,6 @@
 # NAME
 
-Mojolicious::Plugin::Fondation::Model::DBIx::Async - Fondation plugin exposing DBIx::Class::Async natively —
+Mojolicious::Plugin::Fondation::Model::DBIx::Async - Fondation plugin exposing DBIx::Class::Async natively
 
 # VERSION
 

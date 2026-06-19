@@ -1,3 +1,6 @@
 {{$NEXT}}
+    - use DBIx::Class::Relationship::ManyToMany::Async
+
+0.01  2026-06-16
     - Initial release: DBIx::Class::Async plugin for Fondation
       with schema_class, schema, and model helpers.
