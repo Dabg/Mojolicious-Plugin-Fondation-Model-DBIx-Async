@@ -367,11 +367,18 @@ sub register ($self, $app, $config) {
         require IO::Async::Loop::Mojo;
 
         my $loop = IO::Async::Loop::Mojo->new;
+        # Pass all backend keys except those consumed here or by
+        # DBIx::Class::Async::Schema as DBIC connect attributes.
+        my %connect_attrs;
+        for my $k (keys %$bdef) {
+            next if $k =~ /^(?:dsn|user|pass|schema_class|workers|name)$/;
+            $connect_attrs{$k} = $bdef->{$k};
+        }
         $self->{_schemas}{$bname} = DBIx::Class::Async::Schema->connect(
             $bdef->{dsn},
             $bdef->{user}      // '',
             $bdef->{pass}      // '',
-            $bdef->{dbi_attrs} // {},
+            \%connect_attrs,
             {
                 schema_class => $bdef->{schema_class},
                 workers      => $bdef->{workers} // 2,
