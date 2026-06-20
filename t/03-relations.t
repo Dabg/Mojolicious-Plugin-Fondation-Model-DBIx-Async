@@ -25,9 +25,9 @@ $app->plugin('Fondation' => {
                 },
             ],
             models => {
-                user       => { source => 'users',      backend => 'main' },
-                group      => { source => 'groups',     backend => 'main' },
-                user_group => { source => 'user_group', backend => 'main' },
+                user       => { source => 'User',      backend => 'main' },
+                group      => { source => 'Group',     backend => 'main' },
+                user_group => { source => 'UserGroup', backend => 'main' },
             },
         }},
         'Fondation::TestDBIxRelation',

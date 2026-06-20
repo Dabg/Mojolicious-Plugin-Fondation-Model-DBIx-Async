@@ -1,4 +1,7 @@
 {{$NEXT}}
+    - Pass all backend keys except those consumed
+    - use group as relation name (SQL word)
+    - replace table name with resul_class name
 
 0.02      2026-06-19 20:56:47+02:00 Europe/Paris
     - use DBIx::Class::Relationship::ManyToMany::Async

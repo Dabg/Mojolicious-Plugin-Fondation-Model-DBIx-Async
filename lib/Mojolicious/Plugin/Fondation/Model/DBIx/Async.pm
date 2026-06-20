@@ -21,7 +21,7 @@ use Mojo::Base 'Mojolicious::Plugin', -signatures;
                       },
                   ],
                   models => {
-                      user => { source => 'users' },
+                      user => { source => 'User' },
                   },
               }},
           ],
@@ -112,7 +112,7 @@ can help there.
         ],
         default_backend => 'main',            # optional
         models => {
-            user    => { source => 'users' },
+            user    => { source => 'User' },
             article => { source => 'articles', backend => 'main' },
             log     => { source => 'logs',    backend => 'logs' },
         },
@@ -180,7 +180,7 @@ before the async worker responds.
 =head2 model_config
 
   my $cfg = $c->model_config('user');
-  # { name => 'user', source => 'users', backend => 'main' }
+  # { name => 'user', source => 'User', backend => 'main' }
 
 Returns model metadata.
 
