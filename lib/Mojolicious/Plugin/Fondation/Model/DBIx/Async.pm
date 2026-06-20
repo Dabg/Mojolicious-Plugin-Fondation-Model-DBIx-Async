@@ -3,6 +3,7 @@ package Mojolicious::Plugin::Fondation::Model::DBIx::Async;
 # ABSTRACT: Fondation plugin exposing DBIx::Class::Async natively
 
 use Mojo::Base 'Mojolicious::Plugin', -signatures;
+use Fondation::Model::DBIx::Async::ResultSet;
 
 =encoding UTF-8
 
@@ -430,7 +431,8 @@ sub register ($self, $app, $config) {
             or die "Model '$name' is not configured\n";
         my $source  = $spec->{source} // $name;
         my $backend = $spec->{backend};
-        return $c->schema($backend)->resultset($source);
+        my $rs      = $c->schema($backend)->resultset($source);
+        return bless $rs, 'Fondation::Model::DBIx::Async::ResultSet';
     });
 
     # Shutdown cleanup: disconnect all DBIC::Async schemas on process exit.
