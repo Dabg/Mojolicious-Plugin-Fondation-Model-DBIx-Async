@@ -455,6 +455,39 @@ sub register ($self, $app, $config) {
       }
     }
 
+    # ── Global DBIC source re-registration after all plugins finalize ──
+    # Plugins add relationships (has_many, belongs_to, many_to_many_async)
+    # during fondation_finalyze. DBIx::Class clones sources on
+    # register_source(), so the initial Action::DBIx registration stores
+    # a snapshot. We re-register every source once after all plugins have
+    # finalized, so schema instances (including async workers) see the
+    # complete relationship graph.
+    $app->plugins->on(fondation_after_finalyze => sub ($app, $manager) {
+        my $c = $app->build_controller;
+        return unless $c->has_helper('schema_class');
+        my $sc = eval { $c->schema_class } or return;
+
+        # guard against non-DBIC schema class in source re-registration
+        return unless $sc->can('sources');
+
+        # Collect moniker → Result class from all plugins' dbic metadata
+        my %result_classes;
+        for my $entry (values %{$manager->registry}) {
+            next unless $entry->{dbic} && $entry->{dbic}{result_classes};
+            %result_classes = (%result_classes, %{$entry->{dbic}{result_classes}});
+        }
+
+        for my $source_name ($sc->sources) {
+            my $result_class = $result_classes{$source_name} or next;
+            eval {
+                $sc->register_source($source_name,
+                    $result_class->result_source_instance);
+                1;
+            } or $self->log->warn(
+                "Failed to re-register source '$source_name': $@");
+        }
+    });
+
     return $self;
 }
 
