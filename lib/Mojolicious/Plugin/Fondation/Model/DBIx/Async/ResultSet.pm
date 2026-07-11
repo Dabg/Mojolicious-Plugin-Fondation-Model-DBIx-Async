@@ -1,4 +1,4 @@
-package Fondation::Model::DBIx::Async::ResultSet;
+package Mojolicious::Plugin::Fondation::Model::DBIx::Async::ResultSet;
 
 # ABSTRACT: Fondation ResultSet — with() for fluent prefetch (many_to_many + has_many)
 
@@ -145,7 +145,7 @@ __END__
 
 =head1 NAME
 
-Fondation::Model::DBIx::Async::ResultSet — fluent prefetch for DBIx::Class::Async
+Mojolicious::Plugin::Fondation::Model::DBIx::Async::ResultSet — fluent prefetch for DBIx::Class::Async
 
 =head1 SYNOPSIS
 
@@ -166,7 +166,7 @@ Fondation::Model::DBIx::Async::ResultSet — fluent prefetch for DBIx::Class::As
 
 =head1 DESCRIPTION
 
-C<Fondation::Model::DBIx::Async::ResultSet> extends
+C<Mojolicious::Plugin::Fondation::Model::DBIx::Async::ResultSet> extends
 L<DBIx::Class::Async::ResultSet> with a C<with()> method that
 declares relationships to prefetch. The C<all()> and C<find()>
 overrides delegate to C<search_with_prefetch>, ensuring a single
