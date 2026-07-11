@@ -3,7 +3,7 @@ package Mojolicious::Plugin::Fondation::Model::DBIx::Async;
 # ABSTRACT: Fondation plugin exposing DBIx::Class::Async natively
 
 use Mojo::Base 'Mojolicious::Plugin', -signatures;
-use Fondation::Model::DBIx::Async::ResultSet;
+use Mojolicious::Plugin::Fondation::Model::DBIx::Async::ResultSet;
 
 =encoding UTF-8
 
@@ -263,6 +263,41 @@ sub fondation_meta {
             models          => {},
             default_backend => undef,
         },
+        setup => {
+            label       => 'Database',
+            description => 'Main database connection settings',
+            parameters  => [
+                {
+                    key         => '+backends.main.dsn',
+                    label       => 'DSN',
+                    type        => 'string',
+                    default     => 'dbi:SQLite:dbname=data/app.db',
+                    required    => 1,
+                    placeholder => 'dbi:Pg:dbname=mydb;host=localhost',
+                },
+                {
+                    key         => '+backends.main.workers',
+                    label       => 'Workers',
+                    type        => 'integer',
+                    default     => 2,
+                    min         => 1,
+                    max         => 10,
+                },
+                {
+                    key         => '+backends.main.schema_class',
+                    label       => 'Schema class',
+                    type        => 'string',
+                    default     => 'MySchema',
+                    required    => 1,
+                },
+                {
+                    key         => '+backends.main.quote_char',
+                    label       => 'Quote character',
+                    type        => 'string',
+                    default     => '"',
+                },
+            ],
+        },
     };
 }
 
@@ -432,7 +467,7 @@ sub register ($self, $app, $config) {
         my $source  = $spec->{source} // $name;
         my $backend = $spec->{backend};
         my $rs      = $c->schema($backend)->resultset($source);
-        return bless $rs, 'Fondation::Model::DBIx::Async::ResultSet';
+        return bless $rs, 'Mojolicious::Plugin::Fondation::Model::DBIx::Async::ResultSet';
     });
 
     # Shutdown cleanup: disconnect all DBIC::Async schemas on process exit.
