@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.03      2026-07-12 00:14:42+02:00 Europe/Paris
     - add setup (Future Fondation::Setup)
     - move Fondation::Model::DBIx::Async::ResultSet to Mojolicious::Plugin::Fondation::Model::DBIx::Async::ResultSet;
     - centralize DBIC source re-registration after all plugins finalize
