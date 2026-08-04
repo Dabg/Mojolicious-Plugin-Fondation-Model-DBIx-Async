@@ -121,6 +121,15 @@ sub search {
 
 # ─── _build_prefetch — merge many_to_many and has_many into one hashref ────
 
+# ─── TO_JSON — async serialization via all() ──────────────────────────────
+
+sub TO_JSON {
+    my $self = shift;
+    return $self->all->then(sub {
+        return [ map { $_->TO_JSON } @{shift()} ];
+    });
+}
+
 sub _build_prefetch {
     my ($self) = @_;
     my %prefetch = %{ $self->{_fondation_with} // {} };
@@ -241,6 +250,17 @@ multi-column primary keys.
 
 Returns a new ResultSet (same class) with the prefetch metadata copied.
 Subsequent C<all()> or C<find()> will use the prefetch.
+
+=head2 TO_JSON
+
+  $rs->TO_JSON->then(sub ($data) {
+      $self->render(openapi => $data);
+  });
+
+Returns a L<Future> resolving to an arrayref of hashrefs. Delegates to
+C<all()> then maps L<Schema::Result::Base::TO_JSON> over each row.
+Available on every C<< $c->model(...) >> call since the model helper
+re-blesses ResultSets into this class.
 
 =head1 SEE ALSO
 
