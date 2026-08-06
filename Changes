@@ -1,5 +1,6 @@
 {{$NEXT}}
     - add To_JSON ResultSet
+    - Fondation v0.07 dependency
 
 0.04      2026-08-03 12:20:41+02:00 Europe/Paris
     - with(): read _many_to_many scalar instead of hash
