@@ -1,4 +1,6 @@
 {{$NEXT}}
+    - Action::DBIx: fail loudly when a Result class cannot load or register
+    - add test
 
 0.05      2026-08-06 23:38:58+02:00 Europe/Paris
     - add To_JSON ResultSet
