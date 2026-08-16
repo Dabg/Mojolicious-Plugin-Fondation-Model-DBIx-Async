@@ -129,6 +129,13 @@ to reference a specific connection.
 Plain DSN strings are accepted as a shorthand and normalized to
 C<< { dsn => $dsn } >>.
 
+For C<dbi:SQLite>, C<dbi:mysql> and C<dbi:Pg> backends, the driver-specific
+UTF-8 attribute (C<sqlite_unicode>, C<mysql_enable_utf8mb4>,
+C<pg_enable_utf8>) is enabled automatically unless already set explicitly in
+the backend config. This keeps text columns flagged as UTF-8 in Perl, which
+prevents double-encoded mojibake ("nÃ©cessaire" for "nécessaire") in rendered
+HTML and JSON output.
+
 =head3 default_backend
 
 Name of the default backend. When omitted, the first backend in the
@@ -409,6 +416,26 @@ sub register ($self, $app, $config) {
         for my $k (keys %$bdef) {
             next if $k =~ /^(?:dsn|user|pass|schema_class|workers|name)$/;
             $connect_attrs{$k} = $bdef->{$k};
+        }
+        # Automatically enable driver-level UTF-8 handling unless the
+        # application already configured an encoding attribute. Without
+        # it (e.g. sqlite_unicode), DBD drivers return text columns as
+        # raw bytes without the UTF-8 flag, and the renderer re-encodes
+        # them as Latin-1 — producing mojibake ("nÃ©cessaire" for
+        # "nécessaire") in HTML and JSON output.
+        my %driver_encoding = (
+            'sqlite' => { sqlite_unicode       => 1 },
+            'mysql'  => { mysql_enable_utf8mb4 => 1 },
+            'pg'     => { pg_enable_utf8       => 1 },
+        );
+        if (my ($driver) = ($bdef->{dsn} // '') =~ /^dbi:([^:;]+)/i) {
+            my $attrs = $driver_encoding{lc $driver};
+            if ($attrs) {
+                for my $attr (keys %$attrs) {
+                    $connect_attrs{$attr} = $attrs->{$attr}
+                        unless exists $connect_attrs{$attr};
+                }
+            }
         }
         $self->{_schemas}{$bname} = DBIx::Class::Async::Schema->connect(
             $bdef->{dsn},
